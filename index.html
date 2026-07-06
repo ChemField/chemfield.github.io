@@ -102,18 +102,19 @@ async function openPRs(repo){ return j(`${API}/repos/${repo}/pulls?state=open&pe
 // map "KW-007" (from an issue title, a PR title, or a branch) → 7
 const kwNum=s=>{const m=(s||'').match(/KW-0*(\d+)/i);return m?+m[1]:null;};
 
-function statusFor(issue, prByKw){
-  const n=kwNum(issue.title);
+// openchem PR-titels beginnen met "#N ·" → koppel PR aan issue N
+const leadNum=s=>{const m=(s||'').match(/#(\d+)/);return m?+m[1]:null;};
+
+function statusFor(issue, pr){
   if(issue.state==='closed') return {cls:'done', label:'✓ merged', href:issue.html_url};
-  const pr=n!=null?prByKw.get(n):null;
   if(pr) return {cls:'review', label:'⟳ in review · PR #'+pr.number, href:pr.html_url};
   return {cls:'queued', label:'queued', href:issue.html_url};
 }
 
-function card(i, prByKw, amber){
+function card(i, pr, amber){
   const labels=i.labels.map(l=>l.name);
   const badges=labels.filter(n=>n!=='agent').map(n=>`<span class="badge ${n.startsWith('nacht')?'amber':''}">${esc(n)}</span>`).join(' ');
-  const st=statusFor(i, prByKw);
+  const st=statusFor(i, pr);
   const g=goal(i.body);
   return `<div class="card ${amber?'amber':''} ${st.cls}">
     <span class="num">#${i.number}</span>
@@ -125,19 +126,22 @@ function card(i, prByKw, amber){
 }
 
 (async()=>{
-  let kw=[],oc=[],prs=[];
+  let kw=[],oc=[],kwPrs=[],ocPrs=[];
   try{
-    [kw,oc,prs]=await Promise.all([
+    [kw,oc,kwPrs,ocPrs]=await Promise.all([
       allIssues('Knitweb/knitweb'),
       allIssues('ChemField/openchem'),
       openPRs('Knitweb/knitweb'),
+      openPRs('ChemField/openchem'),
     ]);
   }catch(e){
     document.getElementById('queue').innerHTML=`<div class="err">API-fout: ${esc(e.message)} (probeer over een minuut — ongeauth. GitHub API = 60 req/uur)</div>`;
     return;
   }
   const prByKw=new Map();
-  for(const p of prs){const n=kwNum(p.title)??kwNum(p.head&&p.head.ref);if(n!=null)prByKw.set(n,p);}
+  for(const p of kwPrs){const n=kwNum(p.title)??kwNum(p.head&&p.head.ref);if(n!=null)prByKw.set(n,p);}
+  const ocPrByIssue=new Map();
+  for(const p of ocPrs){const n=leadNum(p.title);if(n!=null)ocPrByIssue.set(n,p);}
 
   // queue gegroepeerd per nacht-label, gesorteerd, met status
   const nights={};
@@ -149,13 +153,13 @@ function card(i, prByKw, amber){
   document.getElementById('queue').innerHTML=order.map(n=>`
     <div class="night">
       <div class="night-label">▸ ${esc(n.toUpperCase())}</div>
-      ${nights[n].sort((a,b)=>(kwNum(a.title)||0)-(kwNum(b.title)||0)).map(i=>card(i,prByKw)).join('')}
+      ${nights[n].sort((a,b)=>(kwNum(a.title)||0)-(kwNum(b.title)||0)).map(i=>card(i,prByKw.get(kwNum(i.title)))).join('')}
     </div>`).join('')||'<div class="empty">queue leeg</div>';
 
-  document.getElementById('org').innerHTML=oc.map(i=>card(i,prByKw,true)).join('')||'<div class="empty">geen open issues</div>';
+  document.getElementById('org').innerHTML=oc.map(i=>card(i,ocPrByIssue.get(i.number),true)).join('')||'<div class="empty">geen open issues</div>';
 
   const done=kw.filter(i=>i.state==='closed').length;
-  const review=[...prByKw.keys()].length;
+  const review=prByKw.size + ocPrByIssue.size;
   const open=kw.filter(i=>i.state==='open').length;
   document.getElementById('s-done').textContent=done;
   document.getElementById('s-review').textContent=review;
