@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ChemField — EU Steel Slag Interactive 3D Logo v3</title>
+<style>
+  :root{
+    --navy:#06194b;
+    --blue:#0b63ff;
+    --cyan:#29c4ff;
+    --v2:#2b6fff;
+    --v3:#2f9b44;
+    --v4:#b57912;
+    --v5:#7f49d8;
+    --slag-gray:#707784;
+    --slag-dark:#3f444d;
+    --slag-light:#b2bbc7;
+    --slag-brown:#7a5a3a;
+    --slag-amber:#a47233;
+    --steel:#c9d1dc;
+    --eu-gold:#d8a528;
+  }
+
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    background:
+      radial-gradient(circle at 26% 34%, #ffffff 0%, #f7fbff 45%, #ffffff 78%),
+      linear-gradient(180deg,#fff,#f8fbff);
+    font-family: Inter, Avenir Next, Segoe UI, Arial, sans-serif;
+    overflow:hidden;
+  }
+
+  .stage{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .logo{
+    position:relative;
+    width:min(96vw,1600px);
+    aspect-ratio:16 / 9;
+    max-height:92vh;
+  }
+
+  canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    cursor:grab;
+  }
+  canvas:active{ cursor:grabbing; }
+
+  .wordmark{
+    position:absolute;
+    left:48%;
+    top:30.5%;
+    transform:translateY(-50%);
+    color:var(--navy);
+    font-size:clamp(62px,8.6vw,156px);
+    line-height:1;
+    letter-spacing:-0.052em;
+    font-weight:530;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,.94),
+      0 10px 24px rgba(0,35,100,.14);
+    user-select:none;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  .line{
+    position:absolute;
+    left:48.4%;
+    top:47.8%;
+    width:41.5%;
+    height:6px;
+    border-radius:999px;
+    background:linear-gradient(90deg,#0a2a73 0%,#0b63ff 58%,#82d9ff 100%);
+    box-shadow:0 3px 12px rgba(0,103,255,.20);
+    pointer-events:none;
+  }
+
+  .line::after{
+    content:"";
+    position:absolute;
+    right:-24px;
+    top:50%;
+    width:34px;
+    height:34px;
+    transform:translateY(-50%);
+    border-radius:50%;
+    border:7px solid #0b63ff;
+    box-sizing:border-box;
+    background:white;
+    box-shadow:inset 0 0 0 4px rgba(255,255,255,.96),0 4px 14px rgba(0,103,255,.22);
+  }
+
+  .tag{
+    position:absolute;
+    left:48.7%;
+    top:55.4%;
+    color:var(--blue);
+    font-size:clamp(22px,2.65vw,46px);
+    font-weight:370;
+    letter-spacing:.23em;
+    line-height:1;
+    text-shadow:0 6px 14px rgba(0,99,255,.14);
+    user-select:none;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  .subtitle{
+    position:absolute;
+    left:48.8%;
+    top:64.0%;
+    color:rgba(6,25,75,.62);
+    font-size:clamp(12px,1.05vw,16px);
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    user-select:none;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  .panel{
+    position:absolute;
+    left:3.0%;
+    bottom:10.8%;
+    width:min(38%,540px);
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:9px;
+    user-select:none;
+    opacity:0;
+    transform:translateY(8px);
+    pointer-events:none;
+    transition:opacity .22s ease, transform .22s ease;
+    z-index:5;
+  }
+
+  .logo.showLegend .panel,
+  .panel:hover{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 9px;
+    border-radius:999px;
+    border:1px solid rgba(12,45,117,.09);
+    background:rgba(255,255,255,.78);
+    box-shadow:0 6px 16px rgba(12,45,117,.065);
+    backdrop-filter:blur(5px);
+    color:#17346d;
+    font-size:12px;
+    line-height:1;
+    cursor:pointer;
+    transition:.18s ease;
+  }
+
+  .chip:hover{ transform:translateY(-1px); box-shadow:0 9px 18px rgba(12,45,117,.10); }
+  .chip.off{ opacity:.35; filter:grayscale(.8); }
+  .dot{ width:12px; height:12px; border-radius:50%; flex:0 0 12px; box-shadow:inset 0 1px 2px rgba(255,255,255,.65), 0 2px 6px rgba(0,0,0,.12); }
+
+  .mineralHint{
+    position:absolute;
+    left:3.4%;
+    bottom:22.6%;
+    color:rgba(6,25,75,.54);
+    font-size:clamp(11px,1.0vw,15px);
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    user-select:none;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .22s ease, transform .22s ease;
+    pointer-events:none;
+    z-index:5;
+  }
+
+  .logo.showLegend .mineralHint{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  .controls{
+    position:absolute;
+    right:3.2%;
+    bottom:4.2%;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    color:rgba(6,25,75,.62);
+    font-size:13px;
+    letter-spacing:.04em;
+    user-select:none;
+    z-index:6;
+  }
+
+  .zoomBox{
+    display:none;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;
+    gap:10px;
+    padding:8px 12px;
+    border:1px solid rgba(12,45,117,.10);
+    background:rgba(255,255,255,.78);
+    border-radius:999px;
+    box-shadow:0 4px 12px rgba(12,45,117,.06);
+    backdrop-filter:blur(5px);
+  }
+
+  .zoomBox label{
+    color:rgba(6,25,75,.70);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  input[type="range"]{
+    width:100%;
+    accent-color:#0b63ff;
+    cursor:pointer;
+  }
+
+  .zoomValue{
+    min-width:48px;
+    text-align:right;
+    color:#0b63ff;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .btn{
+    border:1px solid rgba(12,45,117,.12);
+    background:rgba(255,255,255,.80);
+    color:rgba(6,25,75,.72);
+    border-radius:999px;
+    padding:9px 13px;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(12,45,117,.06);
+    white-space:nowrap;
+  }
+
+  .btn:hover{ color:var(--blue); }
+
+  .hint{
+    position:absolute;
+    left:3.2%;
+    bottom:4.5%;
+    color:rgba(6,25,75,.44);
+    font-size:13px;
+    letter-spacing:.06em;
+    user-select:none;
+    pointer-events:none;
+  }
+
+  @media (max-width:900px){
+    .panel{ grid-template-columns:repeat(2, 1fr); width:48%; left:2.5%; bottom:9%; top:auto; }
+    .subtitle{ display:none; }
+    .controls{ left:45%; bottom:3%; grid-template-columns:1fr; }
+    .hint{ display:none; }
+  }
+
+  /* ── integration glue (v3 markup ships .zoomLineInput/.zoomKnob/.zoomReadout
+        without styles): the range rides the brand line invisibly, the knob is
+        driven by --zoomNorm set from JS, the readout sits past the endpoint. */
+  .line{ pointer-events:auto; }
+  .lineTrack{ position:absolute; inset:0; border-radius:999px; }
+  .zoomLineInput{
+    position:absolute; left:-2%; top:50%; width:104%; height:36px;
+    transform:translateY(-50%); opacity:0; cursor:pointer; margin:0;
+  }
+  .zoomKnob{
+    position:absolute; top:50%; left:calc(var(--zoomNorm,.171) * 100%);
+    width:20px; height:20px; transform:translate(-50%,-50%);
+    border-radius:50%; background:#fff; border:5px solid #0b63ff;
+    box-shadow:0 3px 10px rgba(0,103,255,.28); pointer-events:none;
+    transition:left .06s linear;
+  }
+  .zoomReadout{
+    position:absolute; right:-96px; top:50%; transform:translateY(-50%);
+    color:#0b63ff; font-size:14px; font-variant-numeric:tabular-nums;
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="logo" id="logo">
+    <canvas id="scene"></canvas>
+
+    <div class="wordmark">ChemField</div>
+    <div class="line" id="zoomLine">
+      <div class="lineTrack"></div>
+      <input class="zoomLineInput" id="zoomRange" type="range" min="0.70" max="2.45" step="0.01" value="1.00" aria-label="Zoom">
+      <div class="zoomKnob" id="zoomKnob"></div>
+      <div class="zoomReadout" id="zoomValue">100%</div>
+    </div>
+    <div class="tag">hydrometallurgy AI</div>
+    <div class="subtitle">EU critical raw materials · Si-28/29/30 · V₂O₅ pathway · steel-slag mass balance</div>
+
+    <div class="mineralHint" id="mineralHint">steel-slag mineral system · V states · Si isotopes</div>
+    <div class="panel" id="panel">
+      <div class="chip" data-layer="v2"><span class="dot" style="background:var(--v2)"></span>V(II)</div>
+      <div class="chip" data-layer="v3"><span class="dot" style="background:var(--v3)"></span>V(III)</div>
+      <div class="chip" data-layer="v4"><span class="dot" style="background:var(--v4)"></span>V(IV)</div>
+      <div class="chip" data-layer="v5"><span class="dot" style="background:var(--v5)"></span>V(V)</div>
+      <div class="chip" data-layer="si"><span class="dot" style="background:var(--steel)"></span>Si isotopes</div>
+      <div class="chip" data-layer="slag"><span class="dot" style="background:var(--slag-gray)"></span>slag matrix</div>
+      <div class="chip" data-layer="ions"><span class="dot" style="background:var(--cyan)"></span>ions</div>
+      <div class="chip" data-layer="eu"><span class="dot" style="background:var(--eu-gold)"></span>Atomium</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="reset">reset</button>
+      <button class="btn" id="spin">auto spin</button>
+    </div>
+
+    <div class="hint">drag sphere = rotate · hold Shift/Alt + drag, or drag empty left area while zoomed = pan centre · wheel/line under ChemField = zoom</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("scene");
+  const logo = document.getElementById("logo");
+  const ctx = canvas.getContext("2d", { alpha:true });
+  const resetBtn = document.getElementById("reset");
+  const spinBtn = document.getElementById("spin");
+  const zoomRange = document.getElementById("zoomRange");
+  const zoomValue = document.getElementById("zoomValue");
+  const zoomLine = document.getElementById("zoomLine");
+
+  let legendTimer = null;
+  function revealLegend(duration=1800){
+    logo.classList.add("showLegend");
+    clearTimeout(legendTimer);
+    legendTimer = setTimeout(()=>{
+      if(!pointer.down && targetZoom <= 1.02) logo.classList.remove("showLegend");
+    }, duration);
+  }
+
+  function updateLegendVisibility(){
+    if(pointer.down || targetZoom > 1.02) {
+      logo.classList.add("showLegend");
+    } else {
+      logo.classList.remove("showLegend");
+    }
+  }
+
+  let dpr=1, W=0, H=0;
+  let pointer = {down:false, x:0, y:0, vx:0, vy:0, mode:"rotate"};
+  let rotX=-0.20, rotY=0.26, targetZoom=1.0, zoom=1.0, auto=true;
+  let pan = {x:0, y:0};
+
+  const C = {
+    navy:[6,25,75],
+    blue:[11,99,255],
+    cyan:[41,196,255],
+    v2:[43,111,255],
+    v3:[47,155,68],
+    v4:[181,121,18],
+    v5:[127,73,216],
+    slagGray:[112,119,132],
+    slagDark:[63,68,77],
+    slagLight:[178,187,199],
+    slagBrown:[122,90,58],
+    slagAmber:[164,114,51],
+    steel:[201,209,220],
+    euGold:[216,165,40],
+    white:[255,255,255],
+    black:[25,27,32]
+  };
+
+  const visible = {v2:true,v3:true,v4:true,v5:true,si:true,slag:true,ions:true,eu:true};
+
+  const nodes=[], bonds=[], labels=[], fields=[], rocks=[];
+
+  function addNode(x,y,z,r,type,layer,color,label="",charge=0){
+    const n={x,y,z,r,type,layer,color,label,charge,phase:Math.random()*Math.PI*2};
+    nodes.push(n);
+    return nodes.length-1;
+  }
+
+  function addBond(a,b,kind="bond",layer="ions",strength=1,color=null){
+    bonds.push({a,b,kind,layer,strength,color});
+  }
+
+  function addLabel(text,x,y,z,layer,color,size=18){
+    labels.push({text,x,y,z,layer,color,size});
+  }
+
+  function addRock(x,y,z,r,color){
+    rocks.push({x,y,z,r,color,phase:Math.random()*Math.PI*2,edges:5+Math.floor(Math.random()*5)});
+  }
+
+  // Silicon isotope triangle
+  const si28 = addNode(-5,-28,0,17,"isotope","si",C.steel,"Si-28");
+  const si29 = addNode(-55,42,20,14,"isotope","si",C.steel,"Si-29");
+  const si30 = addNode(47,42,-18,14,"isotope","si",C.steel,"Si-30");
+  addBond(si28,si29,"coord","si",1.4,C.steel);
+  addBond(si28,si30,"coord","si",1.4,C.steel);
+  addBond(si29,si30,"coord","si",1.0,C.steel);
+
+  addLabel("Si-28", -5,-28,0,"si",C.navy,16);
+  addLabel("Si-29", -55,42,20,"si",C.navy,15);
+  addLabel("Si-30", 47,42,-18,"si",C.navy,15);
+
+  // Subtle Atomium / EU-Brussels motif, a 9-sphere architectural hint
+  const atomium = [];
+  const atomPts = [
+    [0,-142,4],[-42,-100,22],[42,-100,-18],[0,-62,0],
+    [-42,-24,-22],[42,-24,22],[0,18,0],[-42,60,18],[42,60,-18]
+  ];
+  atomPts.forEach((p,i)=>atomium.push(addNode(p[0],p[1],p[2], i===3?11:7, "atomium","eu", C.euGold, "")));
+  for(let i=0;i<atomium.length-1;i++) addBond(atomium[i], atomium[i+1],"eu","eu",0.75,C.euGold);
+  addBond(atomium[0],atomium[3],"eu","eu",0.65,C.euGold);
+  addBond(atomium[3],atomium[6],"eu","eu",0.65,C.euGold);
+  addLabel("EU", 0,-154,8,"eu",C.euGold,14);
+
+  // Vanadium oxidation-state domains
+  const domains = [
+    {name:"V(II)", key:"v2", color:C.v2, cx:-125, cy:-92, cz:26, specie:"V²⁺"},
+    {name:"V(III)", key:"v3", color:C.v3, cx:120, cy:-86, cz:-10, specie:"V³⁺"},
+    {name:"V(IV)", key:"v4", color:C.v4, cx:-132, cy:104, cz:-2, specie:"VO²⁺"},
+    {name:"V(V)", key:"v5", color:C.v5, cx:126, cy:102, cz:20, specie:"VO₂⁺"}
+  ];
+
+  domains.forEach(d=>{
+    const center=addNode(d.cx,d.cy,d.cz,17,"vanadium",d.key,d.color,d.name);
+    addBond(center,si28,"weak",d.key,0.85,d.color);
+    addBond(center,si29,"weak",d.key,0.65,d.color);
+    addBond(center,si30,"weak",d.key,0.65,d.color);
+    addLabel(d.name,d.cx,d.cy,d.cz,d.key,d.color,22);
+    addLabel(d.specie,d.cx+30,d.cy-22,d.cz+12,d.key,d.color,12);
+
+    for(let i=0;i<16;i++){
+      const a=(Math.PI*2/16)*i;
+      const radius=34+(i%4)*7;
+      const id=addNode(
+        d.cx+Math.cos(a)*radius,
+        d.cy+Math.sin(a)*(28+(i%2)*8),
+        d.cz+((i%5)-2)*9,
+        4.5+(i%4===0?3:0),
+        "vanadium-ion",
+        d.key,
+        d.color,
+        "",
+        i%2 ? -1 : 1
+      );
+      addBond(center,id,"bond",d.key,0.86,d.color);
+      if(i>0) addBond(id,nodes.length-2,"weak",d.key,0.46,d.color);
+    }
+  });
+
+  // Steel slag matrix elements / mass-balance nodes
+  const matrixElements = [
+    {label:"Fe", color:C.slagDark, x:-154, y:-10, z:28, layer:"slag"},
+    {label:"Ti", color:C.slagLight, x:30, y:-126, z:10, layer:"slag"},
+    {label:"Mn", color:C.slagGray,  x:154, y:8, z:16, layer:"slag"},
+    {label:"Mg", color:C.slagLight, x:-34, y:115, z:26, layer:"slag"},
+    {label:"Ca", color:C.steel,     x:24, y:142, z:-10, layer:"slag"},
+    {label:"F",  color:C.slagLight, x:168, y:104, z:18, layer:"slag"},
+    {label:"P",  color:C.slagGray,  x:52, y:190, z:-18, layer:"slag"},
+  ];
+
+  matrixElements.forEach(el=>{
+    const id=addNode(el.x,el.y,el.z,12,"matrix",el.layer,el.color,el.label);
+    addBond(id,si28,"weak","slag",0.72,el.color);
+    addBond(id,si29,"weak","slag",0.55,el.color);
+    addBond(id,si30,"weak","slag",0.55,el.color);
+    addLabel(el.label,el.x,el.y,el.z,"slag",el.color,16);
+  });
+
+  // Mineral/steel-slag bed
+  for(let i=0;i<105;i++){
+    const a=Math.random()*Math.PI*2;
+    const rad=35+Math.random()*180;
+    const x=Math.cos(a)*rad*0.90;
+    const y=150+Math.random()*70;
+    const z=-68+Math.random()*96;
+    const palette=[C.slagGray,C.slagDark,C.slagLight,C.slagBrown,C.slagAmber,C.steel];
+    addRock(x,y,z,4+Math.random()*9,palette[Math.floor(Math.random()*palette.length)]);
+  }
+
+  // Complex aqueous ion cloud and oxide groups
+  const ionSpecies = [
+    {label:"O²⁻",color:C.steel,charge:-2},
+    {label:"Ca²⁺",color:C.steel,charge:2},
+    {label:"Mg²⁺",color:C.slagLight,charge:2},
+    {label:"Fe²⁺",color:C.slagGray,charge:2},
+    {label:"Fe³⁺",color:C.slagDark,charge:3},
+    {label:"Mn²⁺",color:C.slagGray,charge:2},
+    {label:"Ti⁴⁺",color:C.slagLight,charge:4},
+    {label:"F⁻",color:C.slagLight,charge:-1},
+    {label:"PO₄³⁻",color:C.slagDark,charge:-3},
+    {label:"SiO₄⁴⁻",color:C.steel,charge:-4},
+    {label:"VO²⁺",color:C.v4,charge:2},
+    {label:"VO₂⁺",color:C.v5,charge:1},
+    {label:"V²⁺",color:C.v2,charge:2},
+    {label:"V³⁺",color:C.v3,charge:3},
+  ];
+
+  for(let i=0;i<92;i++){
+    const u=Math.random()*2-1;
+    const th=Math.random()*Math.PI*2;
+    const rad=130+Math.random()*112;
+    const s=Math.sqrt(1-u*u);
+    const sp=ionSpecies[Math.floor(Math.random()*ionSpecies.length)];
+    const idx=addNode(rad*s*Math.cos(th),rad*s*Math.sin(th),rad*u,3+Math.random()*5,"ion","ions",sp.color,Math.random()<0.24?sp.label:"",sp.charge);
+    if(Math.random()<0.42) addBond(idx,si28,"weak","ions",0.34,sp.color);
+    if(Math.random()<0.20) addBond(idx,si29,"weak","ions",0.25,sp.color);
+    if(Math.random()<0.20) addBond(idx,si30,"weak","ions",0.25,sp.color);
+  }
+
+  for(let i=0;i<24;i++){
+    fields.push({
+      phase:i*.37,
+      rx:210+(i%5)*12,
+      ry:136+(i%6)*7,
+      tilt:(i-12)*.045,
+      z:-110+i*10,
+      color:i%3===0?C.cyan:i%3===1?C.blue:C.steel,
+      layer:i%4===0?"si":"ions"
+    });
+  }
+
+  function resize(){
+    const rect=logo.getBoundingClientRect();
+    dpr=Math.min(2,window.devicePixelRatio||1);
+    W=Math.round(rect.width*dpr);
+    H=Math.round(rect.height*dpr);
+    canvas.width=W; canvas.height=H;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener("resize",resize);
+  resize();
+
+  function rgba(c,a){ return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+
+  function sphereCenter(){
+    const rect=logo.getBoundingClientRect();
+    const baseR = Math.min(rect.width,rect.height)*.355;
+    return {
+      x:rect.width*.25 + pan.x,
+      y:rect.height*.48 + pan.y,
+      r:baseR*zoom
+    };
+  }
+
+  function project(p,rx,ry,rz,scale=1){
+    let x=p.x,y=p.y,z=p.z;
+    let cy=Math.cos(ry),sy=Math.sin(ry);
+    let x1=x*cy+z*sy, z1=-x*sy+z*cy;
+    let cx=Math.cos(rx),sx=Math.sin(rx);
+    let y2=y*cx-z1*sx, z2=y*sx+z1*cx;
+    let cz=Math.cos(rz),sz=Math.sin(rz);
+    let x3=x1*cz-y2*sz, y3=x1*sz+y2*cz;
+    const f=900/(900-z2);
+    return {x:x3*f*scale,y:y3*f*scale,z:z2,f};
+  }
+
+  function drawSphereShell(cx,cy,R,time){
+    const grad=ctx.createRadialGradient(cx-R*.42,cy-R*.46,R*.08,cx,cy,R*1.07);
+    grad.addColorStop(0,"rgba(255,255,255,.92)");
+    grad.addColorStop(.34,"rgba(234,248,255,.35)");
+    grad.addColorStop(.70,"rgba(138,205,255,.13)");
+    grad.addColorStop(1,"rgba(12,36,79,.18)");
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+
+    const sh=ctx.createRadialGradient(cx,cy+R*.93,R*.02,cx,cy+R*.93,R*.38);
+    sh.addColorStop(0,"rgba(28,32,45,.14)");
+    sh.addColorStop(1,"rgba(28,32,45,0)");
+    ctx.fillStyle=sh;
+    ctx.beginPath(); ctx.ellipse(cx,cy+R*.93,R*.32,R*.065,0,0,Math.PI*2); ctx.fill();
+
+    for(let i=-3;i<=3;i++){
+      const a=i/4;
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,R*Math.sqrt(1-a*a),R*.18,time*.12,0,Math.PI*2);
+      ctx.strokeStyle="rgba(70,170,255,.12)";
+      ctx.lineWidth=1.0;
+      ctx.stroke();
+    }
+    for(let i=0;i<11;i++){
+      const ang=i*Math.PI/11+time*.10;
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,R,R*.23,ang,0,Math.PI*2);
+      ctx.strokeStyle=i%2?"rgba(0,70,160,.09)":"rgba(160,225,255,.08)";
+      ctx.lineWidth=0.95;
+      ctx.stroke();
+    }
+
+    if(visible.eu){
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(time*.035);
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI*2/12;
+        const x=Math.cos(a)*R*1.055, y=Math.sin(a)*R*1.055;
+        drawStar(x,y,R*.018,rgba(C.euGold,.42));
+      }
+      ctx.restore();
+    }
+
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle="rgba(18,45,95,.48)";
+    ctx.lineWidth=Math.max(1.5,R*.0075);
+    ctx.stroke();
+
+    const glint=ctx.createRadialGradient(cx-R*.34,cy-R*.40,0,cx-R*.34,cy-R*.40,R*.32);
+    glint.addColorStop(0,"rgba(255,255,255,.82)");
+    glint.addColorStop(.48,"rgba(220,248,255,.18)");
+    glint.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=glint;
+    ctx.beginPath(); ctx.arc(cx-R*.34,cy-R*.40,R*.32,0,Math.PI*2); ctx.fill();
+  }
+
+  function drawStar(x,y,r,color){
+    ctx.beginPath();
+    for(let i=0;i<10;i++){
+      const a=-Math.PI/2+i*Math.PI/5;
+      const rr=i%2===0?r:r*.42;
+      const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fillStyle=color;
+    ctx.fill();
+  }
+
+  function drawFieldLine(cx,cy,line,rx,ry,rz,scale,time){
+    if(!visible[line.layer]) return;
+    const pts=[];
+    for(let k=0;k<=120;k++){
+      const t=k/120*Math.PI*2;
+      const p={x:Math.cos(t)*line.rx,y:Math.sin(t)*line.ry,z:line.z+Math.sin(t*2+line.phase+time*.55)*18};
+      const pp=project(p,rx+line.tilt,ry,rz+line.phase*.12,scale);
+      pts.push({x:cx+pp.x,y:cy+pp.y,z:pp.z});
+    }
+    for(let k=1;k<pts.length;k++){
+      const a=Math.max(.025,Math.min(.16,(pts[k].z+270)/580*.16));
+      ctx.strokeStyle=rgba(line.color,a);
+      ctx.lineWidth=0.95;
+      ctx.beginPath(); ctx.moveTo(pts[k-1].x,pts[k-1].y); ctx.lineTo(pts[k].x,pts[k].y); ctx.stroke();
+    }
+  }
+
+  function drawRock(cx,cy,p,rk){
+    if(!visible.slag) return;
+    const depth=(p.z+330)/660;
+    const rr=Math.max(2.5,rk.r*p.f*zoom*(.75+.28*depth));
+    const x=cx+p.x, y=cy+p.y;
+    ctx.beginPath();
+    for(let i=0;i<rk.edges;i++){
+      const a=i*Math.PI*2/rk.edges+rk.phase*.12;
+      const jitter=.78+((i*37)%17)/60;
+      const px=x+Math.cos(a)*rr*jitter;
+      const py=y+Math.sin(a)*rr*jitter;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    const g=ctx.createRadialGradient(x-rr*.25,y-rr*.3,rr*.1,x,y,rr*1.3);
+    g.addColorStop(0,rgba(C.white,.74));
+    g.addColorStop(.35,rgba(rk.color,.88));
+    g.addColorStop(1,rgba(C.black,.72));
+    ctx.fillStyle=g;
+    ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.22)";
+    ctx.lineWidth=.6;
+    ctx.stroke();
+  }
+
+  function drawBond(cx,cy,pa,pb,b){
+    if(!visible[b.layer]) return;
+    const za=(pa.z+330)/660, zb=(pb.z+330)/660;
+    const base=b.kind==="weak"?0.10:b.kind==="coord"?0.28:b.kind==="eu"?0.22:0.40;
+    const alpha=base*b.strength*(.42+.58*((za+zb)/2));
+    ctx.strokeStyle=rgba(b.color||C.navy,alpha);
+    ctx.lineWidth=b.kind==="weak"?0.9:b.kind==="eu"?1.5:b.kind==="coord"?2.1:2.6;
+    if(b.kind==="weak") ctx.setLineDash([4,8]); else ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(cx+pa.x,cy+pa.y); ctx.lineTo(cx+pb.x,cy+pb.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawNode(cx,cy,p,n){
+    if(!visible[n.layer]) return;
+    const depth=(p.z+330)/660;
+    const rr=Math.max(2.2,n.r*p.f*zoom*(.72+.35*depth));
+    const a=.42+.55*Math.max(0,Math.min(1,depth));
+    const x=cx+p.x, y=cy+p.y;
+
+    const gr=ctx.createRadialGradient(x-rr*.34,y-rr*.40,rr*.08,x,y,rr*1.22);
+    gr.addColorStop(0,"rgba(255,255,255,.92)");
+    gr.addColorStop(.32,rgba(n.color,.96*a));
+    gr.addColorStop(1,rgba(C.navy,.88*a));
+
+    ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(x,y,rr,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.45)";
+    ctx.lineWidth=Math.max(.55,rr*.10);
+    ctx.stroke();
+
+    if(n.label && rr>10.2){
+      ctx.fillStyle=n.type==="vanadium" ? rgba(n.color,.92*a) : `rgba(20,28,48,${.88*a})`;
+      ctx.font=`${n.type==="vanadium"?"bold ":""}${Math.max(10,rr*.78)}px Inter,Arial`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(n.label,x,y);
+    } else if(n.charge!==0 && rr>4.8){
+      ctx.fillStyle=`rgba(255,255,255,${.92*a})`;
+      ctx.font=`${Math.max(8,rr*.95)}px Inter,Arial`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(n.charge>0?"+":"−",x,y+rr*.02);
+    }
+  }
+
+  function drawLabels(cx,cy,rx,ry,rz,scale){
+    labels.forEach(lb=>{
+      if(!visible[lb.layer]) return;
+      const p=project({x:lb.x,y:lb.y,z:lb.z},rx,ry,rz,scale);
+      const alpha=Math.max(.18,Math.min(.95,(p.z+330)/660));
+      ctx.fillStyle=rgba(lb.color,.86*alpha);
+      ctx.font=`bold ${lb.size}px Inter,Arial`;
+      ctx.textAlign="center";
+      ctx.textBaseline="bottom";
+      ctx.fillText(lb.text,cx+p.x,cy+p.y-18);
+    });
+  }
+
+  function render(ms){
+    const time=ms/1000;
+    const rect=logo.getBoundingClientRect();
+    ctx.clearRect(0,0,rect.width,rect.height);
+
+    if(auto){
+      rotY+=.0044;
+      rotX+=(-.20-rotX)*.015;
+    } else {
+      rotY+=pointer.vx;
+      rotX+=pointer.vy;
+      pointer.vx*=.93;
+      pointer.vy*=.93;
+    }
+    zoom+=(targetZoom-zoom)*.08;
+    zoomValue.textContent = Math.round(targetZoom*100) + "%";
+    if (zoomLine) {
+      const min = Number(zoomRange.min), max = Number(zoomRange.max);
+      zoomLine.style.setProperty("--zoomNorm", ((targetZoom - min) / (max - min)).toFixed(4));
+    }
+    updateLegendVisibility();
+
+    const s=sphereCenter();
+    const cx=s.x, cy=s.y, R=s.r, scale=R/300, rz=.08*Math.sin(time*.22);
+
+    drawSphereShell(cx,cy,R,time);
+    fields.forEach(f=>drawFieldLine(cx,cy,f,rotX,rotY,rz,scale,time));
+
+    const projected=nodes.map((n,idx)=>{
+      let p={x:n.x,y:n.y,z:n.z};
+      if(n.type==="ion"){
+        const a=time*(.24+(idx%7)*.017)+n.phase;
+        p.x+=Math.cos(a)*11; p.y+=Math.sin(a*1.13)*8; p.z+=Math.sin(a*.97)*13;
+      }
+      if(n.type==="vanadium-ion"){
+        const a=time*(.08+(idx%5)*.004)+n.phase;
+        p.z+=Math.sin(a)*5;
+      }
+      return project(p,rotX,rotY,rz,scale);
+    });
+
+    const projectedRocks=rocks.map(rk=>{
+      const p={x:rk.x,y:rk.y,z:rk.z+Math.sin(time*.06+rk.phase)*2};
+      return project(p,rotX,rotY,rz,scale);
+    });
+
+    bonds.slice()
+      .sort((u,v)=>((projected[u.a].z+projected[u.b].z)-(projected[v.a].z+projected[v.b].z)))
+      .forEach(b=>drawBond(cx,cy,projected[b.a],projected[b.b],b));
+
+    rocks.map((rk,i)=>({rk,p:projectedRocks[i]}))
+      .sort((a,b)=>a.p.z-b.p.z)
+      .forEach(o=>drawRock(cx,cy,o.p,o.rk));
+
+    nodes.map((n,i)=>({n,p:projected[i]}))
+      .sort((a,b)=>a.p.z-b.p.z)
+      .forEach(o=>drawNode(cx,cy,o.p,o.n));
+
+    drawLabels(cx,cy,rotX,rotY,rz,scale);
+
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+    const rim=ctx.createRadialGradient(cx,cy,R*.70,cx,cy,R);
+    rim.addColorStop(0,"rgba(255,255,255,0)");
+    rim.addColorStop(.76,"rgba(255,255,255,0)");
+    rim.addColorStop(1,"rgba(7,71,180,.15)");
+    ctx.fillStyle=rim;
+    ctx.fillRect(cx-R,cy-R,R*2,R*2);
+    ctx.restore();
+
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle="rgba(5,24,73,.54)";
+    ctx.lineWidth=2.2;
+    ctx.stroke();
+
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+
+  function currentSphereHit(clientX, clientY){
+    const rect = logo.getBoundingClientRect();
+    const s = sphereCenter();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const dx = x - s.x;
+    const dy = y - s.y;
+    return Math.sqrt(dx*dx + dy*dy) <= s.r * 1.02;
+  }
+
+  canvas.addEventListener("pointerdown",e=>{
+    revealLegend(2400);
+    pointer.down=true;
+    auto=false;
+    pointer.x=e.clientX;
+    pointer.y=e.clientY;
+
+    const hit = currentSphereHit(e.clientX, e.clientY);
+    pointer.mode = (e.shiftKey || e.altKey || (targetZoom > 1.08 && !hit)) ? "pan" : "rotate";
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener("pointermove",e=>{
+    if(!pointer.down) return;
+    revealLegend(2400);
+    const dx=e.clientX-pointer.x, dy=e.clientY-pointer.y;
+    pointer.x=e.clientX;
+    pointer.y=e.clientY;
+
+    if(pointer.mode === "pan"){
+      pan.x += dx;
+      pan.y += dy;
+      const rect = logo.getBoundingClientRect();
+      const maxX = rect.width * 0.22 * Math.max(1, targetZoom);
+      const maxY = rect.height * 0.22 * Math.max(1, targetZoom);
+      pan.x = Math.max(-maxX, Math.min(maxX, pan.x));
+      pan.y = Math.max(-maxY, Math.min(maxY, pan.y));
+    } else {
+      pointer.vx=dx*.0052;
+      pointer.vy=dy*.0052;
+      rotY += pointer.vx;
+      rotX += pointer.vy;
+    }
+  });
+
+  canvas.addEventListener("pointerup",()=>{pointer.down=false; revealLegend(1200);});
+  canvas.addEventListener("pointercancel",()=>{pointer.down=false;});
+
+  canvas.addEventListener("wheel",e=>{
+    e.preventDefault();
+    revealLegend(2400);
+    const old = targetZoom;
+    targetZoom=Math.max(.70,Math.min(2.45,targetZoom-e.deltaY*.0010));
+    zoomRange.value = targetZoom.toFixed(2);
+
+    // zoom around mouse pointer: adjusts pan so the point under cursor stays near focus
+    const rect = logo.getBoundingClientRect();
+    const sx = rect.width*.25 + pan.x;
+    const sy = rect.height*.48 + pan.y;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const factor = targetZoom / old;
+    pan.x = mx - (mx - sx) * factor - rect.width*.25;
+    pan.y = my - (my - sy) * factor - rect.height*.48;
+  },{passive:false});
+
+  zoomRange.addEventListener("input", e=>{
+    targetZoom = Number(e.target.value);
+    revealLegend(2400);
+  });
+
+  canvas.addEventListener("dblclick",resetView);
+
+  function resetView(){
+    rotX=-.20; rotY=.26; targetZoom=1; zoomRange.value="1.00"; pan.x=0; pan.y=0; auto=true;
+    logo.classList.remove("showLegend");
+  }
+
+  resetBtn.addEventListener("click", resetView);
+  spinBtn.addEventListener("click", ()=>{auto=!auto;});
+
+  document.querySelectorAll(".chip").forEach(chip=>{
+    chip.addEventListener("click",()=>{
+      const key=chip.dataset.layer;
+      visible[key]=!visible[key];
+      chip.classList.toggle("off",!visible[key]);
+    });
+  });
+})();
+</script>
+</body>
+</html>
