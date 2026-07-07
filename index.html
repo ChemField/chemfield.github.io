@@ -45,6 +45,22 @@ h2{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase;color:var(--d
 .st.review{color:var(--blue);border:1px solid var(--blue)}
 .st.done{color:var(--green);border:1px solid var(--green)}
 .empty,.err{color:var(--dim);font-style:italic;padding:1rem 0}
+.lead{color:var(--dim);max-width:70ch;margin:-.4rem 0 1rem;font-size:.95rem}
+.lead code{font-family:var(--mono);font-size:.85em;color:var(--accent)}
+.datasrc{font-family:var(--mono);font-size:.62rem;font-weight:400;color:var(--green);border:1px solid var(--line);border-radius:99px;padding:.05rem .5rem;letter-spacing:.04em;text-transform:none;vertical-align:middle}
+.dstrip{font-family:var(--mono);font-size:.9rem;color:var(--dim);background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;margin:0 0 1.2rem;padding:.6rem 1.1rem;display:flex;gap:1.8rem;flex-wrap:wrap}
+.dstrip b{color:var(--accent);font-size:1.05rem}
+.matgroup{margin-bottom:1.3rem}
+.matgroup h3{font-size:.9rem;color:var(--txt);margin:0 0 .5rem;font-weight:600}
+.facts-grid{display:grid;gap:.55rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.fact{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--green);
+  border-radius:6px;padding:.7rem .9rem}
+.fact .claim{font-size:.92rem;line-height:1.4}
+.fact .tags{margin-top:.4rem;display:flex;gap:.35rem;flex-wrap:wrap}
+.fact .src{margin-top:.45rem;font-family:var(--mono);font-size:.68rem;color:var(--dim);
+  display:flex;gap:.35rem;flex-wrap:wrap;align-items:center}
+.fact .src .prov{border:1px solid var(--line);border-radius:99px;padding:.02rem .45rem;color:var(--blue)}
 footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);color:var(--dim);font-size:.85rem}
 @media (max-width:640px){header,main,.strip,footer{margin-left:1rem;margin-right:1rem;padding-left:0;padding-right:0}
  header{padding:1.2rem 1rem}}
@@ -56,11 +72,14 @@ footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);colo
   <span class="sub">nachtploeg-backlog · field-kit v0.1 · agents bouwen &rsquo;s nachts, jij reviewt</span>
   <nav>
     <a href="logo/" class="ext">3D logo</a>
-    <a href="https://knitweb.art" class="ext">knitweb.art</a>
-    <a href="https://knitweb.art/demos/" class="ext">demos</a>
+    <!-- knitweb.art is currently suspended (ICANN verification pending); the menu
+         points at the live GitHub Pages / 5mart.ml mirrors so there are no dead
+         ends. Restore the knitweb.art URLs once the domain resolves again:
+           knitweb.art  ·  knitweb.art/demos/  ·  node.knitweb.art -->
+    <a href="https://knitweb.github.io" class="ext">knitweb</a>
     <a href="https://5mart.ml" class="ext">5mart.ml</a>
-    <a href="https://node.knitweb.art" class="ext">run a node</a>
-    <a href="https://knitweb.github.io/molgang/" class="ext">molgang</a>
+    <a href="https://5mart.ml/molgang/" class="ext">molgang</a>
+    <a href="https://github.com/Knitweb/pulse">run a node</a>
     <a href="https://github.com/Knitweb/knitweb">field-kit repo</a>
   </nav>
 </header>
@@ -75,6 +94,18 @@ footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);colo
 </div>
 
 <main>
+  <h2>Open chemistry data — signed composition facts <span id="d-src" class="datasrc"></span></h2>
+  <p class="lead">Every fact below is <b>mechanically derived</b> from a signed composition record and carries its
+     <b>source</b> — no hand-entered numbers. This is the field-kit fabric: getekende, peer-controleerbare feiten.
+     Live from <a href="https://github.com/ChemField/openchem/blob/main/data/chemfield-knits.json"><code>openchem/data/chemfield-knits.json</code></a>.</p>
+  <div class="dstrip" id="dstrip">
+    <span>feiten <b id="d-facts">…</b></span>
+    <span>relaties <b id="d-rels">…</b></span>
+    <span>bronnen <b id="d-sources">…</b></span>
+    <span>materialen <b id="d-mats">…</b></span>
+  </div>
+  <div id="facts"><div class="empty">laden…</div></div>
+
   <h2>Nachtploeg-queue — Knitweb/knitweb (KW-001…KW-010)</h2>
   <div id="queue"><div class="empty">laden…</div></div>
 
@@ -86,12 +117,47 @@ footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);colo
   Elke kaart is een agent-spec (Definition of Ready: DOEL · CONTEXT · ACCEPTATIE · GRENZEN · OUTPUT) —
   <a href="https://github.com/Knitweb/knitweb/blob/main/docs/SPEC-v0.1.md">Field-Kit Spec v0.1</a>.
   Agents leveren uitsluitend PR&rsquo;s; CI-groen is merge-voorwaarde. Onderdeel van het
-  <a href="https://knitweb.art">KnitWeb</a> hub-and-fields go-to-market-plan.
+  <a href="https://knitweb.github.io">KnitWeb</a> hub-and-fields go-to-market-plan.
 </footer>
 
 <script>
 const API='https://api.github.com';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- Open chemistry data showcase (openchem/data/chemfield-knits.json) ---- */
+const DATA_URL='https://raw.githubusercontent.com/ChemField/openchem/main/data/chemfield-knits.json';
+const shortSrc=s=>String(s).trim().replace(/^source:/,'').trim();
+const matOf=f=>{ // group facts by their record's material slug
+  const m=(f.record||'').match(/^record:([a-z0-9-]+?)(?::|$)/i); return m?m[1]:'overig'; };
+const matLabel=k=>({'bof-slag':'BOF / LD staalslak','nh-clay':'NH klei'}[k]||k.replace(/-/g,' '));
+async function renderData(){
+  let d; try{ d=await (await fetch(DATA_URL,{cache:'no-store'})).json(); }
+  catch(e){ document.getElementById('facts').innerHTML=`<div class="err">Kon open data niet laden (${esc(e.message)}).</div>`; return; }
+  const facts=d.facts||[], rels=d.relations||[];
+  const sources=new Set(); facts.forEach(f=>String(f.source||'').split(',').forEach(s=>{const t=shortSrc(s); if(t)sources.add(t);}));
+  const groups={}; facts.forEach(f=>{const k=matOf(f);(groups[k]=groups[k]||[]).push(f);});
+  document.getElementById('d-facts').textContent=facts.length;
+  document.getElementById('d-rels').textContent=rels.length;
+  document.getElementById('d-sources').textContent=sources.size;
+  document.getElementById('d-mats').textContent=Object.keys(groups).length;
+  document.getElementById('d-src').textContent='live · cursor '+esc(d.cursor??'');
+  document.getElementById('facts').innerHTML=Object.keys(groups).sort().map(k=>`
+    <div class="matgroup">
+      <h3>${esc(matLabel(k))} <span style="color:var(--dim);font-weight:400">· ${groups[k].length} feiten</span></h3>
+      <div class="facts-grid">${groups[k].map(f=>{
+        const tags=(f.tags||[]).map(t=>`<span class="badge">${esc(t)}</span>`).join('');
+        const srcs=String(f.source||'').split(',').map(shortSrc).filter(Boolean)
+          .map(s=>`<span class="prov" title="${esc(s)}">${esc(s.length>34?s.slice(0,32)+'…':s)}</span>`).join('');
+        return `<div class="fact"><div class="claim">${esc(f.claim||f.id)}</div>
+          <div class="tags">${tags}</div>
+          <div class="src">bron: ${srcs||'<i>curatie-vereist</i>'}</div></div>`;
+      }).join('')}</div>
+    </div>`).join('')||'<div class="empty">nog geen feiten</div>';
+}
+renderData();
+</script>
+<script>
+const _apiScope=1; // (backlog board below — separate scope)
 const goal=b=>{const m=(b||'').match(/\*\*DOEL:\*\*\s*([^\n]+)/);return m?m[1].trim():''};
 
 async function j(url){const r=await fetch(url);if(!r.ok)throw new Error(r.status===403?'rate-limit':url.split('/').slice(-2).join('/')+': '+r.status);return r.json();}
