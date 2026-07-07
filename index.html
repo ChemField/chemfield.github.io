@@ -61,6 +61,18 @@ h2{font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase;color:var(--d
 .fact .src{margin-top:.45rem;font-family:var(--mono);font-size:.68rem;color:var(--dim);
   display:flex;gap:.35rem;flex-wrap:wrap;align-items:center}
 .fact .src .prov{border:1px solid var(--line);border-radius:99px;padding:.02rem .45rem;color:var(--blue)}
+.integ-h{font-size:.95rem;color:var(--txt);margin:1.8rem 0 .3rem;font-weight:600}
+.integ-sub{display:block;font-size:.82rem;color:var(--dim);font-weight:400;margin-top:.15rem}
+.integ-grid{display:grid;gap:.5rem;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));margin-top:.7rem}
+.rec{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:.6rem .8rem;border-left:3px solid var(--line)}
+.rec.measured{border-left-color:var(--green)}
+.rec.pending{border-left-color:var(--amber)}
+.rec .rid{font-family:var(--mono);font-size:.74rem;color:var(--dim);word-break:break-all}
+.rec .rstat{font-size:.86rem;margin-top:.25rem}
+.rec .rstat .ic{margin-right:.35rem}
+.rec.measured .rstat .ic{color:var(--green)}
+.rec.pending .rstat .ic{color:var(--amber)}
+.rec .rwhy{color:var(--dim);font-size:.8rem;margin-top:.15rem}
 footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);color:var(--dim);font-size:.85rem}
 @media (max-width:640px){header,main,.strip,footer{margin-left:1rem;margin-right:1rem;padding-left:0;padding-right:0}
  header{padding:1.2rem 1rem}}
@@ -105,6 +117,10 @@ footer{margin:3rem 2rem 0;padding-top:1rem;border-top:1px solid var(--line);colo
     <span>materialen <b id="d-mats">…</b></span>
   </div>
   <div id="facts"><div class="empty">laden…</div></div>
+
+  <h3 class="integ-h">Data-integriteit — wat is gemeten, wat is nog curatie
+    <span class="integ-sub">de field-kit verzint niets: onbemeten records leveren géén feiten</span></h3>
+  <div id="integrity"><div class="empty">laden…</div></div>
 
   <h2>Nachtploeg-queue — Knitweb/knitweb (KW-001…KW-010)</h2>
   <div id="queue"><div class="empty">laden…</div></div>
@@ -153,6 +169,51 @@ async function renderData(){
           <div class="src">bron: ${srcs||'<i>curatie-vereist</i>'}</div></div>`;
       }).join('')}</div>
     </div>`).join('')||'<div class="empty">nog geen feiten</div>';
+
+  renderIntegrity(rels);
+}
+
+// Human-readable labels for the status tokens the fabric records carry.
+const STATUS_NL={
+  range_from_local_operator_dossier_plus_literature_context:'bereik uit operator-dossier + literatuur',
+  not_measured_in_attached_source:'niet gemeten in bijgevoegde bron',
+  not_closed_no_lab_assay_attached:'massabalans niet gesloten — geen lab-assay',
+  clay_mass_balance_templates_added_numeric_enrichment_locked:'klei-massabalans-template; numerieke verrijking vergrendeld',
+  derivable_from_bof_range:'afleidbaar uit BOF-bereik',
+  operator_parameter:'operator-parameter',
+  required_before_enrichment_claim:'vereist vóór verrijkingsclaim',
+  locked_pending_measured_clay_composition:'vergrendeld tot gemeten klei-compositie',
+  mass_balance_planning_basis_not_measured_chemistry:'planningsbasis — nog geen gemeten chemie',
+};
+const nl=t=>STATUS_NL[t]||String(t).replace(/_/g,' ');
+
+// The integrity ledger: per record, is it MEASURED (green) or CURATIE-VEREIST
+// (amber)? Derived purely from the signed measurement-/closure-status relations.
+function renderIntegrity(rels){
+  const el=document.getElementById('integrity'); if(!el) return;
+  const measure={};
+  for(const r of rels){
+    const p=r.rel.split(':').pop();
+    if(p==='hasMeasurementStatus'||p==='hasClosureStatus') measure[r.from]=r.to;
+  }
+  const subs=Object.keys(measure).sort();
+  if(!subs.length){ el.innerHTML='<div class="empty">geen status-relaties</div>'; return; }
+  let nMeasured=0,nPending=0;
+  const cards=subs.map(sub=>{
+    const status=measure[sub];
+    const measured = /^range_from|_measured$|closed$/.test(status) && !/not_/.test(status);
+    if(measured) nMeasured++; else nPending++;
+    const cls=measured?'measured':'pending', ic=measured?'✓':'⏳', label=measured?'gemeten':'curatie-vereist';
+    return `<div class="rec ${cls}">
+      <div class="rid">${esc(sub.replace(/^(record|massbalance):/,''))}</div>
+      <div class="rstat"><span class="ic">${ic}</span>${label}</div>
+      <div class="rwhy">${esc(nl(status))}</div></div>`;
+  }).join('');
+  el.innerHTML=`<div class="dstrip">
+      <span>gemeten <b style="color:var(--green)">${nMeasured}</b></span>
+      <span>curatie-vereist <b style="color:var(--amber)">${nPending}</b></span>
+      <span>records met status <b>${subs.length}</b></span>
+    </div><div class="integ-grid">${cards}</div>`;
 }
 renderData();
 </script>
